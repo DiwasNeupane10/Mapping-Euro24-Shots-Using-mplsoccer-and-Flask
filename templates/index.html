@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Single Page App</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <form id="data-form">
+        <label for="country">Select Country:</label>
+        <select name="country" id="team-select">
+            <option value="">Select a country</option>
+            {% for country in countries %}
+                <option value="{{ country }}">{{ country }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="player">Select Player:</label>
+        <select name="player" id="player-select" disabled>
+            <option value="">Select a player</option>
+            <!-- Player options will be populated based on country selection -->
+        </select>
+
+        <button type="submit">Submit</button>
+    </form>
+
+    <div id="plot-container" style="height: 500px;width:500px;"></div>
+    <div id="error-message"></div>
+
+    <script>
+        $(document).ready(function() {
+            // Handle team selection to fetch players
+            $('#team-select').change(function() {
+                var selectedTeam = $(this).val();
+                if (selectedTeam) {
+                    $.ajax({
+                        url: '/get_players',
+                        type: 'GET',
+                        data: { team: selectedTeam },
+                        success: function(response) {
+                            $('#player-select').empty();
+                            if (response.length > 0) {
+                                $.each(response, function(index, player) {
+                                    $('#player-select').append('<option value="' + player + '">' + player + '</option>');
+                                });
+                                $('#player-select').prop('disabled', false);
+                            } else {
+                                $('#player-select').append('<option value="">No players available</option>');
+                                $('#player-select').prop('disabled', true);
+                            }
+                            $('#error-message').text('');
+                        },
+                        error: function(xhr) {
+                            $('#error-message').text('Error: ' + xhr.responseText);
+                            $('#player-select').empty().append('<option value="">Select a player</option>');
+                            $('#player-select').prop('disabled', true);
+                        }
+                    });
+                } else {
+                    $('#player-select').empty().append('<option value="">Select a player</option>');
+                    $('#player-select').prop('disabled', true);
+                    $('#error-message').text('');
+                }
+            });
+
+            // Handle form submission to generate the plot
+            $('#data-form').submit(function(event) {
+                event.preventDefault(); // Prevent the default form submission
+
+                $.ajax({
+                    url: '/',
+                    type: 'POST',
+                    data: $(this).serialize(),
+                    success: function(response) {
+                        $('#plot-container').html('<img src="' + response.path +  '" alt="Plot" style="height: 500px;width:500px;">');
+                        $('#error-message').text(''); // Clear any previous error messages
+                    },
+                    error: function(xhr) {
+                        $('#error-message').text('Error: ' + xhr.responseText);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
